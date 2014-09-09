@@ -40,6 +40,7 @@ var (
 	startX    = flag.Int("x", 0, "starting X position")
 	width     = flag.Int("w", 0, "chop width")
 	alphabet  = flag.String("a", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", "alphabet to extract")
+	variable  = flag.Bool("v", false, "variable width")
 
 	textName = flag.String("txt", "", "text file to extract pixel font from")
 	outName  = flag.String("o", "", "package name to create (becomes <myfont>.go)")
@@ -49,14 +50,14 @@ func generatePixFont(name string, w, h int, d map[rune]map[int]string) {
 	template := `
 		package %s
 
-		import "github.com/pbnjay/pixfont"
+		import "github.com/ninjasphere/pixfont"
 
 		var Font *pixfont.PixFont
 
 		func init() {
 			charMap := %#v
 			data := %#v
-			Font = pixfont.NewPixFont(%d, %d, charMap, data)
+			Font = pixfont.NewPixFont(%t, %d, %d, charMap, data)
 		}
 	`
 	encoded := []uint32{}
@@ -114,7 +115,7 @@ func generatePixFont(name string, w, h int, d map[rune]map[int]string) {
 	fmt.Fprintln(f, sd.PrefixString("// "))
 
 	// create the code from the template and go fmt it
-	code := fmt.Sprintf(template, name, cm, encoded, w, h)
+	code := fmt.Sprintf(template, variable, name, cm, encoded, w, h)
 	bcode, _ := format.Source([]byte(code))
 	fmt.Fprintln(f, string(bcode))
 

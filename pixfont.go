@@ -70,7 +70,7 @@ func (p *PixFont) DrawRune(dr Drawable, x, y int, c rune, clr color.Color) (bool
 // DrawString uses this PixFont to display text in the provided color and the specified
 // start position in Drawable. The x,y position represents the top-left corner of the
 // first letter of s. Text is drawn by repeated calls to DrawRune for each character.
-func (p *PixFont) DrawString(dr Drawable, x, y int, s string, clr color.Color) {
+func (p *PixFont) DrawString(dr Drawable, x, y int, s string, clr color.Color) int {
 	for _, c := range s {
 		_, drawnWidth := p.DrawRune(dr, x, y, c, clr)
 		if p.variableWidth {
@@ -79,11 +79,12 @@ func (p *PixFont) DrawString(dr Drawable, x, y int, s string, clr color.Color) {
 			x += int(p.charWidth) + 1
 		}
 	}
+	return x
 }
 
 // DrawString is a convienence method that calls DrawString using the DefaultFont
-func DrawString(dr Drawable, x, y int, s string, clr color.Color) {
-	DefaultFont.DrawString(dr, x, y, s, clr)
+func DrawString(dr Drawable, x, y int, s string, clr color.Color) int {
+	return DefaultFont.DrawString(dr, x, y, s, clr)
 }
 
 ///////

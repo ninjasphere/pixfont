@@ -25,16 +25,17 @@ type Drawable interface {
 // simple opaque-pixel operations (supported by image.Image and easily included
 // in other packages).
 type PixFont struct {
-	charWidth  uint8
-	charHeight uint8
-	charmap    map[rune]uint16
-	data       []uint32
+	charWidth     uint8
+	charHeight    uint8
+	charmap       map[rune]uint16
+	data          []uint32
+	variableWidth bool
 }
 
 // NewPixFont creates a new PixFont with the provided character width/height and
 // character map of offsets into a packed uint32 array of bits.
-func NewPixFont(w, h uint8, cm map[rune]uint16, d []uint32) *PixFont {
-	return &PixFont{w, h, cm, d}
+func NewPixFont(variableWidth bool, w, h uint8, cm map[rune]uint16, d []uint32) *PixFont {
+	return &PixFont{w, h, cm, d, variableWidth}
 }
 
 // DrawRune uses this PixFont to display a single rune in the provided color and
@@ -42,11 +43,12 @@ func NewPixFont(w, h uint8, cm map[rune]uint16, d []uint32) *PixFont {
 // Drawable.Set is called for each opaque pixel in the font, leaving all other pixels
 // in the Drawable as-is. If the rune has no representation in the PixFont, then
 // DrawRune returns false and no drawing is done.
-func (p *PixFont) DrawRune(dr Drawable, x, y int, c rune, clr color.Color) bool {
+func (p *PixFont) DrawRune(dr Drawable, x, y int, c rune, clr color.Color) (bool, int) {
 	poff, haveChar := p.charmap[c]
 	if !haveChar {
-		return false
+		return false, 0
 	}
+	width := 0
 	pindex := int(poff >> 2)
 	psub := (poff & 0x03) * 8
 	d := p.data[pindex : pindex+int(p.charHeight)]
@@ -55,11 +57,14 @@ func (p *PixFont) DrawRune(dr Drawable, x, y int, c rune, clr color.Color) bool 
 		for xx := 0; xx < int(p.charWidth); xx++ {
 			if (d[yy] & bitMask) != 0 {
 				dr.Set(x+xx, y+yy, clr)
+				if xx > width {
+					width = xx
+				}
 			}
 			bitMask <<= 1
 		}
 	}
-	return true
+	return true, width
 }
 
 // DrawString uses this PixFont to display text in the provided color and the specified
@@ -67,8 +72,12 @@ func (p *PixFont) DrawRune(dr Drawable, x, y int, c rune, clr color.Color) bool 
 // first letter of s. Text is drawn by repeated calls to DrawRune for each character.
 func (p *PixFont) DrawString(dr Drawable, x, y int, s string, clr color.Color) {
 	for _, c := range s {
-		p.DrawRune(dr, x, y, c, clr)
-		x += int(p.charWidth) + 1
+		_, drawnWidth := p.DrawRune(dr, x, y, c, clr)
+		if p.variableWidth {
+			x += drawnWidth + 2
+		} else {
+			x += int(p.charWidth) + 1
+		}
 	}
 }
 
